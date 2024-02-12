@@ -403,7 +403,7 @@ public class Ast {
     }
     private static class AstRtti {
         private static int INDEX = 0;
-        private static HashMap<Class<?>, Integer> CLASS_TO_INDEX_MAP = new HashMap();
+        private static HashMap<Class<?>, Integer> CLASS_TO_INDEX_MAP = new HashMap<>();
 
         public static int get(Class<?> c) {
             if (!CLASS_TO_INDEX_MAP.containsKey(c)) {
