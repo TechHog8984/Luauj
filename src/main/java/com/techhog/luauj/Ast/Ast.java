@@ -3,34 +3,16 @@ package com.techhog.luauj.Ast;
 import java.util.HashMap;
 import java.util.Optional;
 
-import com.techhog.luauj.Ast.Ast.AstArray;
-import com.techhog.luauj.Ast.Ast.AstExpr;
-import com.techhog.luauj.Ast.Ast.AstExprError;
-import com.techhog.luauj.Ast.Ast.AstLocal;
-import com.techhog.luauj.Ast.Ast.AstName;
-import com.techhog.luauj.Ast.Ast.AstNode;
-import com.techhog.luauj.Ast.Ast.AstStat;
-import com.techhog.luauj.Ast.Ast.AstStatBlock;
-import com.techhog.luauj.Ast.Ast.AstStatError;
-import com.techhog.luauj.Ast.Ast.AstType;
-import com.techhog.luauj.Ast.Ast.AstTypeError;
-import com.techhog.luauj.Ast.Ast.AstTypeFunction;
-import com.techhog.luauj.Ast.Ast.AstTypeIntersection;
-import com.techhog.luauj.Ast.Ast.AstTypeList;
-import com.techhog.luauj.Ast.Ast.AstTypePack;
-import com.techhog.luauj.Ast.Ast.AstTypePackExplicit;
-import com.techhog.luauj.Ast.Ast.AstTypePackGeneric;
-import com.techhog.luauj.Ast.Ast.AstTypePackVariadic;
-import com.techhog.luauj.Ast.Ast.AstTypeReference;
-import com.techhog.luauj.Ast.Ast.AstTypeSingletonBool;
-import com.techhog.luauj.Ast.Ast.AstTypeSingletonString;
-import com.techhog.luauj.Ast.Ast.AstTypeTable;
-import com.techhog.luauj.Ast.Ast.AstTypeTypeof;
-import com.techhog.luauj.Ast.Ast.AstTypeUnion;
-import com.techhog.luauj.Ast.Ast.AstVisitor;
-import com.techhog.luauj.Ast.Lexer.Lexeme;
-
 public class Ast {
+    public static final class Pair<T1, T2> {
+        public final T1 first;
+        public final T2 second;
+        public Pair(T1 first, T2 second) {
+            this.first = first;
+            this.second = second;
+        }
+    }
+
     private static void visitTypeList(AstVisitor visitor, AstTypeList list) {
         for (AstType type : list.types.data) {
             type.visit(visitor);
@@ -306,16 +288,6 @@ public class Ast {
         }
     };
 
-    public static abstract class AstType extends AstNode {
-        public AstType(int class_index, Location location) {
-            super(class_index, location);
-        }
-
-        public Optional<AstType> asType() {
-            return Optional.of(this);
-        }
-    }
-
     public static class AstLocal {
         public final AstName name;
         public final Location location;
@@ -435,6 +407,7 @@ public class Ast {
         public  boolean is(Class<?> c) {
             return class_index == AstRtti.get(c);
         }
+        @SuppressWarnings("unchecked")
         public <T> Optional<T> as(Class<?> c) {
             return is(c) ? Optional.of((T) this) : Optional.empty();
         }
@@ -695,7 +668,7 @@ public class Ast {
         public final AstLocal self;
         public final AstArray<AstLocal> args;
         public final Optional<AstTypeList> return_annotation;
-        public final boolean vararg = false;
+        public final boolean vararg;
         public final Location vararg_location;
         public final Optional<AstTypePack> vararg_annotation;
 
@@ -705,7 +678,7 @@ public class Ast {
 
         public final AstName debugname;
 
-        public final boolean has_end = false;
+        public final boolean has_end;
         public final Optional<Location> arg_location;
 
         public AstExprFunction(Location location, AstArray<AstGenericType> generics_in, AstArray<AstGenericTypePack> generic_packs_in,
@@ -1288,6 +1261,237 @@ public class Ast {
         }
     }
 
+    public static class AstStatAssign extends AstStat {
+        public static int ClassIndex() {
+            return AstRtti.get(AstStatAssign.class);
+        }
+
+        public AstStatAssign(Location location){
+            super(ClassIndex(), location);
+        }
+
+        public void visit(AstVisitor visitor){
+            visitor.visit(this);
+        }
+    }
+
+    public static class AstStatCompoundAssign extends AstStat {
+        public static int ClassIndex() {
+            return AstRtti.get(AstStatCompoundAssign.class);
+        }
+
+        public final AstExprBinary.Op op;
+        public final AstExpr var;
+        public final AstExpr value;
+
+        public AstStatCompoundAssign(Location location, AstExprBinary.Op op_in, AstExpr var_in, AstExpr value_in) {
+            super(ClassIndex(), location);
+            op = op_in;
+            var = var_in;
+            value = value_in;
+        }
+
+        public void visit(AstVisitor visitor) {
+            if (visitor.visit(this)) {
+                var.visit(visitor);
+                value.visit(visitor);
+            }
+        }
+    }
+
+    public static class AstStatFunction extends AstStat {
+        public static int ClassIndex() {
+            return AstRtti.get(AstStatFunction.class);
+        }
+    
+        public final AstExpr name;
+        public final AstExprFunction func;
+    
+        public AstStatFunction(Location location, AstExpr name_in, AstExprFunction func_in) {
+            super(ClassIndex(), location);
+            name = name_in;
+            func = func_in;
+        }
+    
+        public void visit(AstVisitor visitor) {
+            if (visitor.visit(this)) {
+                name.visit(visitor);
+                func.visit(visitor);
+            }
+        }
+    }
+
+    public static class AstStatLocalFunction extends AstStat {
+        public static int ClassIndex() {
+            return AstRtti.get(AstStatLocalFunction.class);
+        }
+    
+        public final AstLocal name;
+        public final AstExprFunction func;
+    
+        public AstStatLocalFunction(Location location, AstLocal name_in, AstExprFunction func_in) {
+            super(ClassIndex(), location);
+            name = name_in;
+            func = func_in;
+        }
+    
+        public void visit(AstVisitor visitor) {
+            if (visitor.visit(this))
+                func.visit(visitor);
+        }
+    }
+
+    public static class AstStatTypeAlias extends AstStat {
+        public static int ClassIndex() {
+            return AstRtti.get(AstStatTypeAlias.class);
+        }
+    
+        public final AstName name;
+        public final AstArray<AstGenericType> generics;
+        public final AstArray<AstGenericTypePack> generic_packs;
+        public final AstType type;
+        public final boolean exported;
+    
+        public AstStatTypeAlias(Location location, AstName name_in, AstArray<AstGenericType> generics_in, AstArray<AstGenericTypePack> generic_packs_in, AstType type_in, boolean exported_in) {
+            super(ClassIndex(), location);
+            name = name_in;
+            generics = generics_in;
+            generic_packs = generic_packs_in;
+            type = type_in;
+            exported = exported_in;
+        }
+    
+        public void visit(AstVisitor visitor) {
+            if (visitor.visit(this)) {
+                for (AstGenericType el : generics.data) {
+                    if (el.default_value.isPresent())
+                        el.default_value.get().visit(visitor);
+                }
+
+                for (AstGenericTypePack el : generic_packs.data) {
+                    if (el.default_value.isPresent())
+                        el.default_value.get().visit(visitor);
+                }
+
+                type.visit(visitor);
+            }
+        }
+    }
+
+    public static class AstStatDeclareGlobal extends AstStat {
+        public static int ClassIndex() {
+            return AstRtti.get(AstStatDeclareGlobal.class);
+        }
+    
+        public final AstName name;
+        public final AstType type;
+    
+        public AstStatDeclareGlobal(Location location, AstName name_in, AstType type_in) {
+            super(ClassIndex(), location);
+            name = name_in;
+            type = type_in;
+        }
+    
+        public void visit(AstVisitor visitor) {
+            if (visitor.visit(this)) {
+                type.visit(visitor);
+            }
+        }
+    }
+
+    public static class AstStatDeclareFunction extends AstStat {
+        public static int ClassIndex() {
+            return AstRtti.get(AstStatDeclareFunction.class);
+        }
+    
+        public final AstName name;
+        public final AstArray<AstGenericType> generics;
+        public final AstArray<AstGenericTypePack> generic_packs;
+        public final AstTypeList params;
+        public final AstArray<Pair<AstName, Location>> param_names;
+        public final AstTypeList ret_types;
+    
+        public AstStatDeclareFunction(Location location, AstName name_in, AstArray<AstGenericType> generics_in,
+            AstArray<AstGenericTypePack> generic_packs_in, AstTypeList params_in, AstArray<Pair<AstName, Location>> param_names_in,
+            AstTypeList ret_types_in)
+        {
+            super(ClassIndex(), location);
+            name = name_in;
+            generics = generics_in;
+            generic_packs = generic_packs_in;
+            params = params_in;
+            param_names = param_names_in;
+            ret_types = ret_types_in;
+        }
+    
+        public void visit(AstVisitor visitor) {
+            if (visitor.visit(this)) {
+                visitTypeList(visitor, params);
+                visitTypeList(visitor, ret_types);
+            }
+        }
+    }
+
+    public final static class AstDeclaredClassProp {
+        public final AstName name;
+        public final Optional<AstType> type;
+        public final boolean is_method;
+
+        public AstDeclaredClassProp(AstName name_in, AstType type_in, boolean is_method_in){
+            name = name_in;
+            type = Optional.of(type_in);
+            is_method = is_method_in;
+        }
+        public AstDeclaredClassProp(AstName name_in, boolean is_method_in){
+            name = name_in;
+            type = Optional.empty();
+            is_method = is_method_in;
+        }
+    }
+
+    public static class AstStatDeclareClass extends AstStat {
+        public static int ClassIndex() {
+            return AstRtti.get(AstStatDeclareClass.class);
+        }
+    
+        public final AstName name;
+        public final Optional<AstName> super_name;
+
+        public final AstArray<AstDeclaredClassProp> props;
+    
+        public AstStatDeclareClass(Location location, AstName name_in, AstName super_name_in, AstArray<AstDeclaredClassProp> props_in) {
+            super(ClassIndex(), location);
+            name = name_in;
+            super_name = Optional.of(super_name_in);
+            props = props_in;
+        }
+        public AstStatDeclareClass(Location location, AstName name_in, AstArray<AstDeclaredClassProp> props_in) {
+            super(ClassIndex(), location);
+            name = name_in;
+            super_name = Optional.empty();
+            props = props_in;
+        }
+    
+        public void visit(AstVisitor visitor) {
+            if (visitor.visit(this)) {
+                for (AstDeclaredClassProp prop : props.data) {
+                    if (prop.type.isPresent())
+                        prop.type.get().visit(visitor);
+                }
+            }
+        }
+    }
+
+    public static abstract class AstType extends AstNode {
+        public AstType(int class_index, Location location) {
+            super(class_index, location);
+        }
+
+        public Optional<AstType> asType() {
+            return Optional.of(this);
+        }
+    }
+
     public static class AstTypeOrPack {
         public Optional<AstType> type;
         public Optional<AstTypePack> type_pack;
@@ -1336,6 +1540,7 @@ public class Ast {
             type = type_in;
         }
     }
+
     public static class AstTableIndexer {
         public final AstType index_type;
         public final AstType result_type;
@@ -1347,6 +1552,7 @@ public class Ast {
             location = location_in;
         }
     }
+
     public static class AstTypeTable extends AstType {
         public static int ClassIndex() {
             return AstRtti.get(AstTypeTable.class);
@@ -1363,7 +1569,7 @@ public class Ast {
 
         public void visit(AstVisitor visitor) {
             if (visitor.visit(this)) {
-                for (AstTableProp prop : props) {
+                for (AstTableProp prop : props.data) {
                     prop.type.visit(visitor);
                 }
 
@@ -1375,60 +1581,279 @@ public class Ast {
             }
         }
     }
+
     public static class AstTypeFunction extends AstType {
-
+        public static int ClassIndex() {
+            return AstRtti.get(AstTypeFunction.class);
+        }
+    
+        public final AstArray<AstGenericType> generics;
+        public final AstArray<AstGenericTypePack> generic_packs;
+        public final AstTypeList arg_types;
+        public final AstArray<Optional<Pair<AstName, Location>>> arg_names;
+        public final AstTypeList return_types;
+    
+        public AstTypeFunction(Location location, AstArray<AstGenericType> generics_in,
+        AstArray<AstGenericTypePack> generic_packs_in, AstTypeList arg_types_in,
+        AstArray<Optional<Pair<AstName, Location>>> arg_names_in, AstTypeList return_types_in) {
+            super(ClassIndex(), location);
+            generics = generics_in;
+            generic_packs = generic_packs_in;
+            arg_types = arg_types_in;
+            arg_names = arg_names_in;
+            return_types = return_types_in;
+        }
+    
+        public void visit(AstVisitor visitor) {
+            if (visitor.visit(this)) {
+                visitTypeList(visitor, arg_types);
+                visitTypeList(visitor, return_types);
+            }
+        }
     }
+
     public static class AstTypeTypeof extends AstType {
-
+        public static int ClassIndex() {
+            return AstRtti.get(AstTypeTypeof.class);
+        }
+    
+        public final AstExpr expr;
+    
+        public AstTypeTypeof(Location location, AstExpr expr_in) {
+            super(ClassIndex(), location);
+            expr = expr_in;
+        }
+    
+        public void visit(AstVisitor visitor) {
+            if (visitor.visit(this))
+                expr.visit(visitor);
+        }
     }
+
     public static class AstTypeUnion extends AstType {
-        
+        public static int ClassIndex() {
+            return AstRtti.get(AstTypeUnion.class);
+        }
+    
+        public final AstArray<AstType> types;
+    
+        public AstTypeUnion(Location location, AstArray<AstType> types_in) {
+            super(ClassIndex(), location);
+            types = types_in;
+        }
+    
+        public void visit(AstVisitor visitor) {
+            if (visitor.visit(this)) {
+                for (AstType type : types.data) {
+                    type.visit(visitor);
+                }
+            }
+        }
     }
-    public static class AstTypeIntersection extends AstType {
-        
-    }
-    public static class AstExprError extends AstType {
-        
-    }
-    public static class AstStatError extends AstType {
-        
-    }
-    public static class AstTypeError extends AstType {
-        
-    }
-    public static class AstTypeSingletonBool extends AstType {
-        
-    }
-    public static class AstTypeSingletonString extends AstType {
-        
-    }
-    public static class AstTypePack extends AstNode {
-        
-    }
-    public static class AstTypePackExplicit extends AstTypePack {
 
+    public static class AstTypeIntersection extends AstType {
+        public static int ClassIndex() {
+            return AstRtti.get(AstTypeIntersection.class);
+        }
+    
+        public final AstArray<AstType> types;
+    
+        public AstTypeIntersection(Location location, AstArray<AstType> types_in) {
+            super(ClassIndex(), location);
+            types = types_in;
+        }
+    
+        public void visit(AstVisitor visitor) {
+            if (visitor.visit(this)) {
+                for (AstType type : types.data) {
+                    type.visit(visitor);
+                }
+            }
+        }
     }
+
+    public static class AstExprError extends AstExpr {
+        public static int ClassIndex() {
+            return AstRtti.get(AstExprError.class);
+        }
+    
+        public final AstArray<AstExpr> expressions;
+        public final int message_index;
+    
+        public AstExprError(Location location, AstArray<AstExpr> expressions_in, int message_index_in) {
+            super(ClassIndex(), location);
+            expressions = expressions_in;
+            message_index = message_index_in;
+        }
+    
+        public void visit(AstVisitor visitor) {
+            if (visitor.visit(this)) {
+                for (AstExpr expr : expressions.data) {
+                    expr.visit(visitor);
+                }
+            }
+        }
+    }
+
+    public static class AstStatError extends AstStat {
+        public static int ClassIndex() {
+            return AstRtti.get(AstStatError.class);
+        }
+    
+        public final AstArray<AstExpr> expressions;
+        public final AstArray<AstStat> statements;
+        public final int message_index;
+    
+        public AstStatError(Location location, AstArray<AstExpr> expressions_in, AstArray<AstStat> statements_in, int message_index_in) {
+            super(ClassIndex(), location);
+            expressions = expressions_in;
+            statements = statements_in;
+            message_index = message_index_in;
+        }
+    
+        public void visit(AstVisitor visitor) {
+            if (visitor.visit(this)) {
+                for (AstNode expr : expressions.data)
+                    expr.visit(visitor);
+
+                for (AstNode stat : statements.data)
+                    stat.visit(visitor);
+            }
+        }
+    }
+
+    public static class AstTypeError extends AstType {
+        public static int ClassIndex() {
+            return AstRtti.get(AstTypeError.class);
+        }
+    
+        public final AstArray<AstType> types;
+        public final boolean is_missing;
+        public final int message_index;
+    
+        public AstTypeError(Location location, AstArray<AstType> types_in, boolean is_missing_in, int message_index_in) {
+            super(ClassIndex(), location);
+            types = types_in;
+            is_missing = is_missing_in;
+            message_index = message_index_in;
+        }
+    
+        public void visit(AstVisitor visitor) {
+            if (visitor.visit(this)) {
+                for (AstType type :types.data) {
+                    type.visit(visitor);
+                }
+            }
+        }
+    }
+
+    public static class AstTypeSingletonBool extends AstType {
+        public static int ClassIndex() {
+            return AstRtti.get(AstTypeSingletonBool.class);
+        }
+    
+        public final boolean value;
+    
+        public AstTypeSingletonBool(Location location, boolean value_in) {
+            super(ClassIndex(), location);
+            value = value_in;
+        }
+    
+        public void visit(AstVisitor visitor) {
+            visitor.visit(this);
+        }
+    }
+
+    public static class AstTypeSingletonString extends AstType {
+        public static int ClassIndex() {
+            return AstRtti.get(AstTypeSingletonString.class);
+        }
+    
+        public final AstArray<Character> value;
+    
+        public AstTypeSingletonString(Location location, AstArray<Character> value_in) {
+            super(ClassIndex(), location);
+            value = value_in;
+        }
+    
+        public void visit(AstVisitor visitor) {
+            visitor.visit(this);
+        }
+    }
+
+    public static abstract class AstTypePack extends AstNode {
+        public AstTypePack(int class_index, Location location) {
+            super(class_index, location);
+        }
+    }
+
+    public static class AstTypePackExplicit extends AstTypePack {
+        public static int ClassIndex() {
+            return AstRtti.get(AstTypePackExplicit.class);
+        }
+    
+        public final AstTypeList type_list;
+    
+        public AstTypePackExplicit(Location location, AstTypeList type_list_in) {
+            super(ClassIndex(), location);
+            type_list = type_list_in;
+        }
+    
+        public void visit(AstVisitor visitor) {
+            if (visitor.visit(this)) {
+                for (AstType type : type_list.types.data)
+                    type.visit(visitor);
+
+                if (type_list.tail_type.isPresent())
+                    type_list.tail_type.get().visit(visitor);
+            }
+        }
+    }
+
     public static class AstTypePackVariadic extends AstTypePack {
-        
+        public static int ClassIndex() {
+            return AstRtti.get(AstTypePackVariadic.class);
+        }
+    
+        public final AstType variadic_type;
+    
+        public AstTypePackVariadic(Location location, AstType variadic_type_in) {
+            super(ClassIndex(), location);
+            variadic_type = variadic_type_in;
+        }
+    
+        public void visit(AstVisitor visitor) {
+            if (visitor.visit(this))
+                variadic_type.visit(visitor);
+        }
     }
+
     public static class AstTypePackGeneric extends AstTypePack {
-        
+        public static int ClassIndex() {
+            return AstRtti.get(AstTypePackGeneric.class);
+        }
+    
+        public final AstName generic_name;
+    
+        public AstTypePackGeneric(Location location, AstName generic_name_in) {
+            super(ClassIndex(), location);
+            generic_name = generic_name_in;;
+        }
+    
+        public void visit(AstVisitor visitor) {
+            visitor.visit(this);
+        }
     }
 
     public static AstName getIdentifier(AstExpr node) {
+        Optional<AstExprGlobal> global = node.as(AstExprGlobal.class);
+        if (global.isPresent())
+            return global.get().name;
 
+        Optional<AstExprLocal> local = node.as(AstExprLocal.class);
+        if (local.isPresent())
+            return local.get().local.name;
+
+        return new AstName();
     }
-    public static Location getLocation(AstTypeList type_list) {
-
-    }
-
-    public static <T> Location getLocation(AstArray<T> array) {
-        
-    }
-
-    // public static class AstNameTable {
-    //     public final AstName addStatic(String name, Lexeme.Type type) {
-
-    //     }
-    // }
 }
