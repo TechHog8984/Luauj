@@ -1856,4 +1856,17 @@ public class Ast {
 
         return new AstName();
     }
+
+    public static Location getLocation(AstTypeList type_list) {
+        Location result;
+        if (type_list.types.size > 0) {
+            result = new Location(type_list.types.data[0].location, type_list.types.data[type_list.types.size - 1].location);
+        } else {
+            result = new Location();
+        }
+        if (type_list.tail_type.isPresent())
+            result.end = type_list.tail_type.get().location.end;
+
+        return result;
+    }
 }
