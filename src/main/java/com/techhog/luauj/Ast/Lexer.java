@@ -2,6 +2,7 @@ package com.techhog.luauj.Ast;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 public class Lexer {
     public static final class Lexeme {
@@ -191,6 +192,53 @@ public class Lexer {
                 return CHAR_TO_ITEM_MAP.get(ch);
             }
         }
+
+        public final Type type;
+        public final Location location;
+        public final int length;
+
+        public final Optional<String> data;
+        public final Optional<String> name;
+        public final Optional<Integer> codepoint;
+
+        public Lexeme(Location location_in, Type type_in) {
+            location = location_in;
+            type = type_in;
+            length = 0;
+            data = Optional.empty();
+            name = Optional.empty();
+            codepoint = Optional.empty();
+        }
+
+        public Lexeme(Location location_in, char character) {
+            location = location_in;
+            type = Type.get(character);
+            length = 0;
+            data = Optional.empty();
+            name = Optional.empty();
+            codepoint = Optional.empty();
+        }
+
+        public Lexeme(Location location_in, Type type_in, String data_in, int size_in) {
+            location = location_in;
+            type = type_in;
+            length = size_in;
+            data = Optional.of(data_in);
+            name = Optional.empty();
+            codepoint = Optional.empty();
+
+            assert type == Type.RawString || type == Type.QuotedString || type == Type.InterpStringBegin || type == Type.InterpStringMid ||
+                type == Type.InterpStringEnd || type == Type.InterpStringSimple || type == Type.BrokenInterpDoubleBrace || type == Type.Number ||
+                type == Type.Comment || type == Type.BlockComment;
+        }
+    }
+
+    // private static final class Page {
+    //     public Optional<Page> next;
+    //     public char[] data = new char[8192];
+    // }
+
+    public Lexer() {
 
     }
 }
