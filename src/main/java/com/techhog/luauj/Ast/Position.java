@@ -3,9 +3,9 @@ package com.techhog.luauj.Ast;
 public class Position {
     public int line, column;
 
-    public Position(int l, int c) {
-        line = l;
-        column = c;
+    public Position(int line_in, int column_in) {
+        line = line_in;
+        column = column_in;
     }
 
     public boolean equals(Position rhs) {
