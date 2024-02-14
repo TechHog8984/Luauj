@@ -231,6 +231,17 @@ public class Lexer {
                 type == Type.InterpStringEnd || type == Type.InterpStringSimple || type == Type.BrokenInterpDoubleBrace || type == Type.Number ||
                 type == Type.Comment || type == Type.BlockComment;
         }
+
+        public Lexeme(Location location_in, Type type_in, String name_in) {
+            location = location_in;
+            type = type_in;
+            length = 0;
+            data = Optional.empty();
+            name = Optional.of(name_in);
+            codepoint = Optional.empty();
+
+            assert type == Type.Name || (type.index > Type.Reserved_BEGIN.index && type.index < Type.Reserved_END.index);
+        }
     }
 
     // private static final class Page {
