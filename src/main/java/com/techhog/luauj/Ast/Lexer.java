@@ -5,6 +5,9 @@ import java.util.Map;
 import java.util.Optional;
 
 public class Lexer {
+    private static String[] kReserved = {"and", "break", "do", "else", "elseif", "end", "false", "for", "function", "if", "in", "local", "nil", "not", "or",
+    "repeat", "return", "then", "true", "until", "while"};
+
     public static final class Lexeme {
         public static final class Type {
             private static final Map<String, Type> NAME_TO_ITEM_MAP = new HashMap<>();
@@ -195,7 +198,7 @@ public class Lexer {
 
         public final Type type;
         public final Location location;
-        public final int length;
+        public final int length; // TODO: possible remove Lexeme.length
 
         public final Optional<String> data;
         public final Optional<String> name;
@@ -241,6 +244,111 @@ public class Lexer {
             codepoint = Optional.empty();
 
             assert type == Type.Name || (type.index > Type.Reserved_BEGIN.index && type.index < Type.Reserved_END.index);
+        }
+
+        public String toString() {
+            if (type == Type.Equal)
+                return "<eof>";
+
+            else if (type == Type.Equal)
+                return "'=='";
+
+            else if (type == Type.LessEqual)
+                return "'<='";
+
+            else if (type == Type.GreaterEqual)
+                return "'>='";
+
+            else if (type == Type.NotEqual)
+                return "'~='";
+
+            else if (type == Type.Dot2)
+                return "'..'";
+
+            else if (type == Type.Dot3)
+                return "'...'";
+
+            else if (type == Type.SkinnyArrow)
+                return "'->'";
+
+            else if (type == Type.DoubleColon)
+                return "'::'";
+
+            else if (type == Type.AddAssign)
+                return "'+='";
+
+            else if (type == Type.SubAssign)
+                return "'-='";
+
+            else if (type == Type.MulAssign)
+                return "'*='";
+
+            else if (type == Type.DivAssign)
+                return "'/='";
+
+            else if (type == Type.ModAssign)
+                return "'%='";
+
+            else if (type == Type.PowAssign)
+                return "'^='";
+
+            else if (type == Type.ConcatAssign)
+                return "'..='";
+
+            else if (type == Type.RawString ||
+                    type == Type.QuotedString)
+                return data.isPresent() ? String.format("\"%s\"", data.get()) : "string";
+
+            else if (type == Type.InterpStringBegin)
+                return data.isPresent() ? String.format("`%s{", data.get()) : "the beginning of an interpolated string";
+
+            else if (type == Type.InterpStringMid)
+                return data.isPresent() ? String.format("}%s{", data.get()) : "the middle of an interpolated string";
+
+            else if (type == Type.InterpStringEnd)
+                return data.isPresent() ? String.format("}%s`", data.get()) : "the end of an interpolated string";
+
+            else if (type == Type.InterpStringSimple)
+                return data.isPresent() ? String.format("`%s`", data.get()) : "interpolated string";
+
+            else if (type == Type.Number)
+                return data.isPresent() ? String.format("'%s'", data.get()) : "number";
+
+            else if (type == Type.Name)
+                return name.isPresent() ? String.format("'%s'", name.get()) : "identifier";
+
+            else if (type == Type.Comment)
+                return "comment";
+
+            else if (type == Type.BrokenString)
+                return "malformed string";
+
+            else if (type == Type.BrokenComment)
+                return "unfinished comment";
+
+            else if (type == Type.BrokenInterpDoubleBrace)
+                return "'{{', which is invalid (did you mean '\\{'?)";
+
+            else if (type == Type.BrokenUnicode)
+                throw new Exception("IMPLEMENT ME");
+                // if (codepoint.isPresent()) {
+                //     final Optional<String> confusable = findConfusable(codepoint);
+                //     if (confusable.isPresent())
+                //         return String.format("Unicode character U+%x (did you mean '%s'?)", codepoint, confusable.get());
+
+                //     return String.format("Unicode character U+%x", codepoint);
+                // } else {
+                //     return "invalid UTF-8 sequence";
+                // }
+
+            else {
+                if (type.index < Type.Char_END.index)
+                    return String.format("'%c'", type);
+                else if (type.index > Type.Reserved_BEGIN.index && type.index < Type.Reserved_END.index)
+                    return String.format("'%s'", kReserved[type.index - Type.Reserved_BEGIN.index - 1]);
+                else
+                    return "<unknown>";
+            }
         }
     }
 
