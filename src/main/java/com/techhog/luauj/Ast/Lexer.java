@@ -4,6 +4,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import com.techhog.luauj.Ast.Lexer.Lexeme.Type;
+
 public class Lexer {
     private static String[] kReserved = {"and", "break", "do", "else", "elseif", "end", "false", "for", "function", "if", "in", "local", "nil", "not", "or",
     "repeat", "return", "then", "true", "until", "while"};
@@ -202,7 +204,7 @@ public class Lexer {
 
         public final Optional<String> data;
         public final Optional<String> name;
-        public final Optional<Integer> codepoint;
+        public Optional<Integer> codepoint;
 
         public Lexeme(Location location_in, Type type_in) {
             location = location_in;
@@ -244,6 +246,12 @@ public class Lexer {
             codepoint = Optional.empty();
 
             assert type == Type.Name || (type.index > Type.Reserved_BEGIN.index && type.index < Type.Reserved_END.index);
+        }
+
+        public void setCodepoint(int codepoint_in) {
+            assert codepoint.isEmpty();
+
+            codepoint = Optional.of(codepoint_in);
         }
 
         public String toString() {
@@ -329,17 +337,17 @@ public class Lexer {
             else if (type == Type.BrokenInterpDoubleBrace)
                 return "'{{', which is invalid (did you mean '\\{'?)";
 
-            else if (type == Type.BrokenUnicode)
-                throw new Exception("IMPLEMENT ME");
-                // if (codepoint.isPresent()) {
-                //     final Optional<String> confusable = findConfusable(codepoint);
-                //     if (confusable.isPresent())
-                //         return String.format("Unicode character U+%x (did you mean '%s'?)", codepoint, confusable.get());
+            else if (type == Type.BrokenUnicode){
+                if (codepoint.isPresent()) {
+                    final Optional<String> confusable = Confusables.findConfusable(codepoint.get());
+                    if (confusable.isPresent())
+                        return String.format("Unicode character U+%x (did you mean '%s'?)", codepoint.get(), confusable.get());
 
-                //     return String.format("Unicode character U+%x", codepoint);
-                // } else {
-                //     return "invalid UTF-8 sequence";
-                // }
+                    return String.format("Unicode character U+%x", codepoint);
+                } else {
+                    return "invalid UTF-8 sequence";
+                }
+            }
 
             else {
                 if (type.index < Type.Char_END.index)
@@ -352,12 +360,7 @@ public class Lexer {
         }
     }
 
-    // private static final class Page {
-    //     public Optional<Page> next;
-    //     public char[] data = new char[8192];
-    // }
-
     public Lexer() {
-
+        
     }
 }
