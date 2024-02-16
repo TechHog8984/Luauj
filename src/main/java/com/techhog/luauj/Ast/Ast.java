@@ -4,15 +4,6 @@ import java.util.HashMap;
 import java.util.Optional;
 
 public class Ast {
-    public static final class Pair<T1, T2> {
-        public final T1 first;
-        public final T2 second;
-        public Pair(T1 first, T2 second) {
-            this.first = first;
-            this.second = second;
-        }
-    }
-
     private static void visitTypeList(AstVisitor visitor, AstTypeList list) {
         for (AstType type : list.types.data) {
             type.visit(visitor);
@@ -33,10 +24,10 @@ public class Ast {
         }
 
         public boolean equals(AstName rhs) {
-            return value == rhs.value;
+            return value.equals(rhs.value);
         }
         public boolean equals(String rhs) {
-            return value == rhs;
+            return value.equals(rhs);
         }
         public boolean lessthan(AstName rhs) {
             if (value == null || rhs.value == null) return false;
