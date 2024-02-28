@@ -1,6 +1,6 @@
 package com.techhog.luauj.Ast;
 
-public class Location {
+public final class Location {
     public Position begin, end;
 
     public Location() {

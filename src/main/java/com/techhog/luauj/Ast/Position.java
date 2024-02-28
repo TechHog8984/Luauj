@@ -1,6 +1,6 @@
 package com.techhog.luauj.Ast;
 
-public class Position {
+public final class Position {
     public int line, column;
 
     public Position(int line_in, int column_in) {

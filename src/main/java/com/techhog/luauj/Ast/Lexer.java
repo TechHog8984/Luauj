@@ -9,7 +9,7 @@ import java.util.Vector;
 
 import com.techhog.luauj.Ast.Ast.AstName;
 
-public class Lexer {
+public final class Lexer {
     private static String[] kReserved = {"and", "break", "do", "else", "elseif", "end", "false", "for", "function", "if", "in", "local", "nil", "not", "or",
     "repeat", "return", "then", "true", "until", "while"};
 
@@ -882,7 +882,6 @@ public class Lexer {
         while (peekch() != 0 && peekch() != '\r' && !isNewLine(peekch()))
             consume();
 
-        // TODO: double check buffer.subSequence stuff
         return new Lexeme(new Location(start, position()), Lexeme.Type.Comment, buffer.subSequence(start_offset, offset).toString(), offset - start_offset);
     }
 
@@ -923,7 +922,6 @@ public class Lexer {
                     final int end_offset = offset - sep - 2;
                     assert end_offset >= start_offset;
 
-                    // TODO: double check buffer.subSequence stuff
                     return new Lexeme(new Location(start, position()), ok, buffer.subSequence(start_offset, end_offset).toString(), end_offset - start_offset);
                 }
             } else {
@@ -985,7 +983,6 @@ public class Lexer {
 
         consume();
 
-        // TODO: double check buffer.subSequence stuff
         return new Lexeme(new Location(start, position()), Lexeme.Type.QuotedString, buffer.subSequence(start_offset, offset - 1).toString(), offset - start_offset - 1);
     }
 
@@ -1025,6 +1022,7 @@ public class Lexer {
                     brace_stack.add(BraceType.InterpolatedString);
 
                     if (peekch(1) == '{') {
+                        System.out.println("UM");
                         // TODO: double check buffer.subSequence stuff
                         final Lexeme broken_double_brace = new Lexeme(
                             new Location(start, position()),

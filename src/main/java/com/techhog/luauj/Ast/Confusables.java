@@ -5,7 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-public class Confusables {
+public final class Confusables {
     private static final class Confusable {
         public final int codepoint;
         public final String text;

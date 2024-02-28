@@ -3,7 +3,7 @@ package com.techhog.luauj.Ast;
 import java.util.HashMap;
 import java.util.Optional;
 
-public class Ast {
+public final class Ast {
     private static void visitTypeList(AstVisitor visitor, AstTypeList list) {
         for (AstType type : list.types.data) {
             type.visit(visitor);
