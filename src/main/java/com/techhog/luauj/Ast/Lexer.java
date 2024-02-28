@@ -1022,7 +1022,6 @@ public final class Lexer {
                     brace_stack.add(BraceType.InterpolatedString);
 
                     if (peekch(1) == '{') {
-                        System.out.println("UM");
                         // TODO: double check buffer.subSequence stuff
                         final Lexeme broken_double_brace = new Lexeme(
                             new Location(start, position()),
