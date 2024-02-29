@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import com.techhog.luauj.Ast.Lexer.AstNameTable;
 import com.techhog.luauj.Ast.Lexer.Lexeme;
 
-public class LexerTest {
+public class LexerTests {
     private Lexer lex(final String test_input){
         final AstNameTable table = new AstNameTable();
         final Lexer lexer = new Lexer(test_input, test_input.length(), table);
@@ -155,5 +155,53 @@ public class LexerTest {
         Lexeme interpEnd = lexer.next();
         assert interpEnd.type == Lexeme.Type.InterpStringEnd;
         assert interpEnd.toString().equals("} end`");
+    }
+
+    @Test
+    public void string_interpolation_double_brace() {
+        final Lexer lexer = lex("`foo{{bad}}bar`");
+
+        final Lexeme broken_interp_begin = lexer.next();
+        assert broken_interp_begin.type == Lexeme.Type.BrokenInterpDoubleBrace;
+        assert broken_interp_begin.data.orElse("").equals("foo");
+
+        assert lexer.next().type == Lexeme.Type.Name;
+
+        final Lexeme interp_end = lexer.next();
+        assert interp_end.type == Lexeme.Type.InterpStringEnd;
+        assert interp_end.data.orElse("").equals("}bar");
+    }
+
+    @Test
+    public void string_interpolation_double_but_unmatched_brace() {
+        final Lexer lexer = lex("`{{oops}`, 1");
+
+        assert lexer.next().type == Lexeme.Type.BrokenInterpDoubleBrace;
+        assert lexer.next().type == Lexeme.Type.Name;
+        assert lexer.next().type == Lexeme.Type.InterpStringEnd;
+        assert lexer.next().type.ch == ',';
+        assert lexer.next().type == Lexeme.Type.Number;
+    }
+
+    // TOOD: this test fails :(
+    // @Test
+    // public void string_interpolation_unmatched_brace() {
+    //     final Lexer lexer = lex("{" +
+    //     "   `hello {\"world\"}" +
+    //     "} -- this might be incorrectly parsed as a string");
+
+    //     assert lexer.next().type.ch == '{';
+    //     assert lexer.next().type == Lexeme.Type.InterpStringBegin;
+    //     assert lexer.next().type == Lexeme.Type.QuotedString;
+    //     assert lexer.next().type == Lexeme.Type.BrokenString;
+    //     assert lexer.next().type.ch == '}';
+    // }
+
+    @Test
+    public void string_interpolation_with_unicode_escape() {
+        final Lexer lexer = lex("`\\u{1F41B}`");
+
+        assert lexer.next().type == Lexeme.Type.InterpStringSimple;
+        assert lexer.next().type == Lexeme.Type.Eof;
     }
 }
