@@ -183,7 +183,7 @@ public class LexerTests {
         assert lexer.next().type == Lexeme.Type.Number;
     }
 
-    // TOOD: this test fails :(
+    // TODO: this test fails :(
     // @Test
     // public void string_interpolation_unmatched_brace() {
     //     final Lexer lexer = lex("{" +
