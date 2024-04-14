@@ -183,19 +183,18 @@ public class LexerTests {
         assert lexer.next().type == Lexeme.Type.Number;
     }
 
-    // TODO: this test fails :(
-    // @Test
-    // public void string_interpolation_unmatched_brace() {
-    //     final Lexer lexer = lex("{" +
-    //     "   `hello {\"world\"}" +
-    //     "} -- this might be incorrectly parsed as a string");
+    @Test
+    public void string_interpolation_unmatched_brace() {
+        final Lexer lexer = lex("{" + "\n" + 
+        "    `hello {\"world\"}" + "\n" +
+        "} -- this might be incorrectly parsed as a string");
 
-    //     assert lexer.next().type.ch == '{';
-    //     assert lexer.next().type == Lexeme.Type.InterpStringBegin;
-    //     assert lexer.next().type == Lexeme.Type.QuotedString;
-    //     assert lexer.next().type == Lexeme.Type.BrokenString;
-    //     assert lexer.next().type.ch == '}';
-    // }
+        assert lexer.next().type.ch == '{';
+        assert lexer.next().type == Lexeme.Type.InterpStringBegin;
+        assert lexer.next().type == Lexeme.Type.QuotedString;
+        assert lexer.next().type == Lexeme.Type.BrokenString;
+        assert lexer.next().type.ch == '}';
+    }
 
     @Test
     public void string_interpolation_with_unicode_escape() {
