@@ -180,15 +180,13 @@ public final class Parser {
         while (type == Lexeme.Type.BrokenComment || type == Lexeme.Type.Comment || type == Lexeme.Type.BlockComment) {
             final Lexeme lexeme = lexer.current();
 
-            if (options.capture_comments) {
+            if (options.capture_comments)
                 comment_locations.add(new Comment(lexeme.type, lexeme.location));
-            }
 
             // Subtlety: Broken comments are weird because we record them as comments AND pass them to the parser as a lexeme.
             // The parser will turn this into a proper syntax error.
-            if (lexeme.type == Lexeme.Type.BrokenComment) {
+            if (lexeme.type == Lexeme.Type.BrokenComment)
                 return;
-            }
 
             // Comments starting with ! are called "hot comments" and contain directives for type checking / linting / compiling
             if (lexeme.type == Lexeme.Type.Comment && lexeme.length > 0 && lexeme.data.get().charAt(0) == '!') {
