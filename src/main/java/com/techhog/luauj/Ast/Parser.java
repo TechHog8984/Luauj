@@ -242,7 +242,31 @@ public final class Parser {
         scratch_binding.ensureCapacity(16);
     }
 
-    private AstExpr parseString() {
+    private Optional<AstArray<Character>> parseCharArray() {
+        assert lexer.current().type == Lexeme.Type.QuotedString || lexer.current().type == Lexeme.Type.RawString ||
+            lexer.current().type == Lexeme.Type.InterpStringSimple;
+
+        assignStringBuilder(scratch_data, lexer.current().data.get());
+
+        final StringHolder holder = new StringHolder(scratch_data.toString());
+        if (lexer.current().type == Lexeme.Type.QuotedString || lexer.current().type == Lexeme.Type.InterpStringSimple) {
+            if (!Lexer.fixupQuotedString(holder)) {
+                nextLexeme();
+                return Optional.empty();
+            }
+            assignStringBuilder(scratch_data, holder.string);
+        } else {
+            Lexer.fixupMultilineString(holder);
+            assignStringBuilder(scratch_data, holder.string);
+        }
+
+        final AstArray<Character> value = copy(scratch_data.toString());
+        nextLexeme();
+
+        return Optional.of(value);
+    }
+
+    private AstExpr parseString() throws ParseError {
         final Location location = lexer.current().location;
         final Optional<AstArray<Character>> value = parseCharArray();
         if (value.isPresent())
