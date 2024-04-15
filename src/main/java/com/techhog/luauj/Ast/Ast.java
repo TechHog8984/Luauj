@@ -315,6 +315,10 @@ public final class Ast {
             data = data_in;
             size = data_in.length;
         }
+        public AstArray() {
+            data = null;
+            size = 0;
+        }
     }
 
     public static class AstTypeList {
