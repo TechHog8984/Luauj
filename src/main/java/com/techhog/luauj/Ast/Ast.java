@@ -906,13 +906,17 @@ public final class Ast {
 
         public final AstExpr condition;
         public final Optional<AstExpr> true_expr;
+        public final boolean has_then;
         public final Optional<AstExpr> false_expr;
+        public final boolean has_else;
 
-        public AstExprIfElse(Location location, AstExpr condition_in, Optional<AstExpr> true_expr_in, Optional<AstExpr> false_expr_in) {
+        public AstExprIfElse(Location location, AstExpr condition_in, boolean has_then_in, Optional<AstExpr> true_expr_in, boolean has_else_in, Optional<AstExpr> false_expr_in) {
             super(ClassIndex(), location);
             condition = condition_in;
             true_expr = true_expr_in;
+            has_then = has_then_in;
             false_expr = false_expr_in;
+            has_else = has_else_in;
         }
 
         public void visit(AstVisitor visitor) {
@@ -1488,8 +1492,18 @@ public final class Ast {
     }
 
     public static class AstTypeOrPack {
-        public Optional<AstType> type;
-        public Optional<AstTypePack> type_pack;
+        public final Optional<AstType> type;
+        public final Optional<AstTypePack> type_pack;
+
+        public AstTypeOrPack(AstType type_in) {
+            type = Optional.of(type_in);
+            type_pack = Optional.empty();
+        }
+
+        public AstTypeOrPack(AstTypePack type_pack_in) {
+            type = Optional.empty();
+            type_pack = Optional.of(type_pack_in);
+        }
     }
     public static class AstTypeReference extends AstType {
         public static int ClassIndex() {
@@ -1682,7 +1696,7 @@ public final class Ast {
         }
     
         public void visit(AstVisitor visitor) {
-            if (visitor.visit(this)) {
+            if (visitor.visit(this) && expressions.data != null) {
                 for (AstExpr expr : expressions.data) {
                     expr.visit(visitor);
                 }
