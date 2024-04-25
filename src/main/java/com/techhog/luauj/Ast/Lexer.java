@@ -1136,7 +1136,9 @@ public final class Lexer {
                 if (brace_stack.isEmpty())
                     return new Lexeme(new Location(start, 1), Lexeme.Type.get('}'));
 
-                final BraceType brace_stack_top = brace_stack.getLast();
+                // final BraceType brace_stack_top = brace_stack.getLast();
+                // TODO: this built fine on windows, but linux is erroring saying getLast doesn't exist
+                final BraceType brace_stack_top = brace_stack.lastElement();
                 brace_stack.remove(brace_stack.size() - 1);
 
                 if (brace_stack_top != BraceType.InterpolatedString)
