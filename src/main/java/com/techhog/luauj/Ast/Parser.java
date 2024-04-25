@@ -9,6 +9,7 @@ import java.util.Vector;
 import com.techhog.luauj.Ast.Ast.AstArray;
 import com.techhog.luauj.Ast.Ast.AstDeclaredClassProp;
 import com.techhog.luauj.Ast.Ast.AstExpr;
+import com.techhog.luauj.Ast.Ast.AstExprBinary;
 import com.techhog.luauj.Ast.Ast.AstExprCall;
 import com.techhog.luauj.Ast.Ast.AstExprConstantBool;
 import com.techhog.luauj.Ast.Ast.AstExprConstantNil;
@@ -24,6 +25,7 @@ import com.techhog.luauj.Ast.Ast.AstExprIndexName;
 import com.techhog.luauj.Ast.Ast.AstExprLocal;
 import com.techhog.luauj.Ast.Ast.AstExprTable;
 import com.techhog.luauj.Ast.Ast.AstExprTypeAssertion;
+import com.techhog.luauj.Ast.Ast.AstExprUnary;
 import com.techhog.luauj.Ast.Ast.AstExprVarargs;
 import com.techhog.luauj.Ast.Ast.AstGenericType;
 import com.techhog.luauj.Ast.Ast.AstGenericTypePack;
@@ -169,6 +171,19 @@ public final class Parser {
         }
     }
 
+    private static final class BinaryOpPriority {
+        private final char left, right;
+
+        public BinaryOpPriority(char left_in, char right_in) {
+            left = left_in;
+            right = right_in;
+        }
+        public BinaryOpPriority(int left_in, int right_in) {
+            left = (char) left_in;
+            right = (char) right_in;
+        }
+    }
+
     // private static <K, V> Optional<K> find(HashMap<K, V> map, V value) {
     //     for (K k : map.keySet()) {
     //         if (map.get(k).equals(value))
@@ -280,6 +295,75 @@ public final class Parser {
         }
 
         return new AstExprGlobal(name.get().location, name.get().name);
+    }
+
+    // subexpr -> (asexp | unop subexpr) { binop subexpr }
+    // where `binop' is any binary operator with a priority higher than `limit'
+    private AstExpr parseExpr(int limit) throws ParseError {
+        final BinaryOpPriority[] binary_priority = {
+            // `+' `-' `*' `/' `%'
+            new BinaryOpPriority(6, 6), new BinaryOpPriority(6, 6), new BinaryOpPriority(7, 7), new BinaryOpPriority(7, 7), new BinaryOpPriority(7, 7),
+            // power and concat (right associative)
+            new BinaryOpPriority(10, 9), new BinaryOpPriority(5, 4),
+            // equality and inequality
+            new BinaryOpPriority(3, 3), new BinaryOpPriority(3, 3),
+            // order
+            new BinaryOpPriority(3, 3), new BinaryOpPriority(3, 3), new BinaryOpPriority(3, 3), new BinaryOpPriority(3, 3),
+            // logical (and/or)
+            new BinaryOpPriority(2, 2), new BinaryOpPriority(1, 1)
+        };
+
+        final int recursion_counter_old = recursion_counter;
+
+        // this handles recursive calls to parseSubExpr/parseExpr
+        incrementRecursionCounter("expression");
+
+        final int unary_priority = 0;
+
+        final Location start = lexer.current().location;
+
+        final AstExpr expr;
+
+        final Optional<AstExprUnary.Op> uop = parseUnaryOp(lexer.current());
+
+        if (uop.isEmpty())
+            uop = checkUnaryConfusables();
+
+        if (uop.isEmpty()) {
+            nextLexeme();
+
+            final AstExpr subexpr = parseExpr(unary_priority);
+
+            expr = new AstExprUnary(new Location(start, subexpr.location), uop.get(), subexpr);
+        } else {
+            expr = parseAssertionExpr();
+        }
+
+        // expand while operators have priorities higher than `limit'
+        final Optional<AstExprBinary.Op> op = parseBinaryOp(lexer.current());
+
+        if (op.isEmpty())
+            op = checkBinaryConfusables(binary_priority, limit);
+
+        while (op.isPresent() && binary_priority[op.get().ordinal()].left > limit) {
+            nextLexeme();
+
+            // read sub-expression with higher priority
+            final AstExpr next = parseExpr(binary_priority[op.get().ordinal()].right);
+
+            expr = new AstExprBinary(new Location(start, next.location), op.get(), expr, next);
+            op = parseBinaryOp(lexer.current());
+
+            if (op.isEmpty())
+                op = checkBinaryConfusables(binary_priority, limit);
+
+            // note: while the parser isn't recursive here, we're generating recursive structures of unbounded depth
+            incrementRecursionCounter("expression");
+        }
+
+        recursion_counter = recursion_counter_old;
+
+        return expr;
     }
 
     // prefixexp -> NAME | '(' expr ')'
